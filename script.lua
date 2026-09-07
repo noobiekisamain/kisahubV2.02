@@ -21,38 +21,42 @@ local Window = WindUI:CreateWindow({
     Transparent = true,
     Theme = "Dark",
     Acrylic = true,
+    ToggleKey = Enum.KeyCode.RightShift, -- Explicitly sets Right Shift to open/close the menu
 })
 
--- 3. Create Key System / Notification check
-local keyValid = false
-local function verifyKey(inputKey)
-    if inputKey == "admintest" or inputKey == "kisahub" then
-        keyValid = true
-        return true
-    end
-    return false
-end
+-- 3. Dedicated Key System Window / Tab
+local KeyTab = Window:Tab({ Title = "Key System", Icon = "key" })
+KeyTab:Paragraph({ Title = "Authentication Required", Desc = "Enter your key or use test keys ('admintest' / 'kisahub') to unlock the hub." })
 
--- Key System Dialog Prompt using WindUI
-local Dialog = Window:Dialog({
-    Title = "Noobiekisa Hub // Security",
-    Content = "Enter Key from Link or use 'admintest' / 'kisahub'. Click copy link if needed.",
-    Buttons = {
-        {
-            Title = "Copy Key Link",
-            Callback = function()
-                pcall(function() setclipboard("https://kisahub.lovable.app") end)
-                WindUI:Notify({ Title = "Success", Content = "Key link copied to clipboard!", Duration = 3 })
-            end
-        },
-        {
-            Title = "Confirm Key",
-            Callback = function()
-                -- Will accept any input if they clicked through or we can use a prompt. Let's make it auto-valid for smooth UI loading or check input.
-                keyValid = true
-            end
-        }
-    }
+local enteredKey = ""
+KeyTab:Input({
+    Title = "Enter Key",
+    Placeholder = "Type key here...",
+    Callback = function(value)
+        enteredKey = value
+    end,
+})
+
+local hubUnlocked = false
+
+KeyTab:Button({
+    Title = "Verify Key",
+    Callback = function()
+        if enteredKey == "admintest" or enteredKey == "kisahub" then
+            hubUnlocked = true
+            WindUI:Notify({ Title = "Success", Content = "Key verified! Hub unlocked.", Duration = 3 })
+        else
+            WindUI:Notify({ Title = "Access Denied", Content = "Invalid key. Try 'admintest' or 'kisahub'.", Duration = 3 })
+        end
+    end,
+})
+
+KeyTab:Button({
+    Title = "Copy Key Link",
+    Callback = function()
+        pcall(function() setclipboard("https://kisahub.lovable.app") end)
+        WindUI:Notify({ Title = "Link Copied", Content = "Key link copied to clipboard!", Duration = 3 })
+    end,
 })
 
 -- Tabs
@@ -291,13 +295,12 @@ local function checkHasQuest()
 end
 
 -- =========================================================================
--- FIXED AUTO FARM, QUEST & ESP ENGINES
+-- ESP & FARM ENGINE LOOPS
 -- =========================================================================
 local playerHighlights = {}
 local enemyHighlights = {}
 
 local function updateESP()
-    -- Player ESP Management
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= player and plr.Character then
             if Config.PlayerESP then
@@ -319,7 +322,6 @@ local function updateESP()
         end
     end
 
-    -- Enemy / NPC ESP Management (Enemies Folder / Workspace checks)
     local enemiesFolder = Workspace:FindFirstChild("Enemies")
     if enemiesFolder then
         for _, enemy in ipairs(enemiesFolder:GetChildren()) do
@@ -347,6 +349,10 @@ end
 
 RunService.Heartbeat:Connect(function(dt)
     pcall(function()
+        updateESP()
+
+        if not hubUnlocked then return end
+
         local character = player.Character
         if not character or not character:FindFirstChild("HumanoidRootPart") then
             return
@@ -354,9 +360,6 @@ RunService.Heartbeat:Connect(function(dt)
 
         local hrp = character.HumanoidRootPart
         local humanoid = character:FindFirstChildOfClass("Humanoid")
-
-        -- Update Visual ESP loops safely
-        updateESP()
 
         if Config.CustomSpeed and humanoid then
             humanoid.WalkSpeed = 65
@@ -380,7 +383,6 @@ RunService.Heartbeat:Connect(function(dt)
             end
         end
 
-        -- Fixed Auto Collect (Checking actual item drops / handles)
         if Config.AutoCollect then
             for _, obj in ipairs(Workspace:GetChildren()) do
                 if (obj:IsA("Part") or obj:IsA("MeshPart")) and (obj.Name:lower():find("chest") or obj.Name:lower():find("drop")) then
@@ -389,7 +391,6 @@ RunService.Heartbeat:Connect(function(dt)
             end
         end
 
-        -- Fruit Notifier & Teleport to spawned Devil Fruits
         if Config.FruitNotifier then
             for _, obj in ipairs(Workspace:GetChildren()) do
                 if obj:IsA("Tool") and obj:FindFirstChild("Handle") then
@@ -398,7 +399,6 @@ RunService.Heartbeat:Connect(function(dt)
             end
         end
 
-        -- Fixed Auto Quest logic
         if Config.AutoQuest and not checkHasQuest() then
             pcall(function()
                 local commF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
@@ -414,7 +414,6 @@ RunService.Heartbeat:Connect(function(dt)
             end)
         end
 
-        -- Fixed Auto Farm & Combat Logic (Targeting validBlox Fruits Enemies Folder)
         if Config.AutoFarm or Config.AutoCombat then
             local enemiesFolder = Workspace:FindFirstChild("Enemies")
             if enemiesFolder then
@@ -435,10 +434,9 @@ RunService.Heartbeat:Connect(function(dt)
 
                 if closestEnemy and closestEnemy:FindFirstChild("HumanoidRootPart") then
                     local targetHrp = closestEnemy.HumanoidRootPart
-                    -- Position directly above/behind the enemy safely for Blox Fruits hit registration
                     hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 5, 3)
                     
-                    -- Trigger tool activations or combat actions
+                    -- Every hit makes the durability go down by x1.
                     pcall(function()
                         local tool = character:FindFirstChildOfClass("Tool")
                         if tool then
