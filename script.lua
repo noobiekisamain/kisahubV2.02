@@ -1,4 +1,4 @@
--- NOOBIEKISAHUB V2.3 BF // ULTIMATE EDITION (OPTIMIZED FLIGHT & EXIT ANIMATION)
+-- NOOBIEKISAHUB V2.4 BF // ULTIMATE EDITION (KEY SYSTEM GENERATOR & UPDATE)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -16,6 +16,21 @@ player.Idled:Connect(function()
     VirtualUser:CaptureController()
     VirtualUser:ClickButton2(Vector2.new())
 end)
+
+-- Dynamic Key Generator: Always starts with "Noob-Q" followed by 15 random alphanumeric characters
+local function generateValidKey()
+    local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    local randomPart = ""
+    math.randomseed(tick() + math.random(1000, 99999))
+    for i = 1, 15 do
+        local randIndex = math.random(1, #chars)
+        randomPart = randomPart .. chars:sub(randIndex, randIndex)
+    end
+    return "Noob-Q" .. randomPart
+end
+
+local generatedKey = generateValidKey()
+print("[Noobiekisa Hub Key]: " .. generatedKey) -- Printed to console for testing/verification
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "NoobiekisaHubV2BF"
@@ -51,11 +66,11 @@ local keyBox = Instance.new("TextBox")
 keyBox.Size = UDim2.new(0.85, 0, 0, 42)
 keyBox.Position = UDim2.new(0.075, 0, 0, 65)
 keyBox.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-keyBox.PlaceholderText = "Enter Access Key..."
+keyBox.PlaceholderText = "Enter Access Key (Noob-Q...)"
 keyBox.Text = ""
 keyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 keyBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 120)
-keyBox.TextSize = 13
+keyBox.TextSize = 12
 keyBox.Font = Enum.Font.Gotham
 keyBox.Parent = keyFrame
 
@@ -527,7 +542,6 @@ local function launchHub()
                 local distance = direction.Magnitude
 
                 if distance > 5 then
-                    -- Adjusted flight speed down just a teeny bit to 185 studs/sec for ultra-safe anti-cheat bypass
                     hrp.CFrame = CFrame.new(hrp.Position + direction.Unit * math.min(185 * dt, distance))
                     hrp.Velocity = Vector3.new(0, 0, 0)
                 else
@@ -556,6 +570,7 @@ local function launchHub()
                     local commF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
                     if commF then
                         local data = player:FindFirstChild("Data")
+                        print("Every hit makes the durability go down by x1.")
                         local lvl = data and data:FindFirstChild("Level") and data.Level.Value or 1
                         if lvl >= 1 and lvl <= 9 then
                             commF:InvokeServer("StartQuest", "BanditQuest1", 1)
@@ -570,9 +585,12 @@ local function launchHub()
 end
 
 submitBtn.MouseButton1Click:Connect(function()
-    if keyBox.Text ~= "" then
+    local text = keyBox.Text
+    -- Verifies that the entered key starts with "Noob-Q" and is 21 characters long total (Noob-Q [6 chars] + 15 random chars = 21)
+    if text == generatedKey or (text:sub(1, 6) == "Noob-Q" and #text == 21) then
         launchHub()
     else
-        keyBox.PlaceholderText = "Please enter key!"
+        keyBox.Text = ""
+        keyBox.PlaceholderText = "Invalid Key! Must start with Noob-Q"
     end
 end)
