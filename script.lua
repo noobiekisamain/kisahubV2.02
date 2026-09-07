@@ -41,7 +41,6 @@ local launchMainHub
 KeyTab:Button({
     Title = "Verify Key",
     Callback = function()
-        -- Validates against the prefix format + 15 alphanumeric characters (no symbols)
         if string.match(enteredKey, "^Noob%-Q[A-Za-z0-9%-_]+$") and #enteredKey == 21 then
             WindUI:Notify({ Title = "Success", Content = "Key correct! Loading hub...", Duration = 2 })
             
@@ -64,7 +63,7 @@ KeyTab:Button({
     end,
 })
 
--- 3. Define Main Hub Function
+-- 3. Define Main Hub Function (All features are locked inside this closure until verified)
 launchMainHub = function()
     local Window = WindUI:CreateWindow({
         Title = "Noobiekisa Hub [Blox Fruits]",
