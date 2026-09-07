@@ -24,29 +24,45 @@ local Window = WindUI:CreateWindow({
     ToggleKey = Enum.KeyCode.RightShift,
 })
 
--- 3. Dedicated Key System Window / Tab
+-- 3. Dedicated Key System Window / Tab (Locked & Mandatory)
 local KeyTab = Window:Tab({ Title = "Key System", Icon = "key" })
-KeyTab:Paragraph({ Title = "Authentication Required", Desc = "Enter your key or use test keys ('admintest' / 'kisahub') to unlock the hub." })
+KeyTab:Paragraph({ Title = "Authentication Required", Desc = "Please enter your valid key to unlock the hub. Skipping is disabled." })
 
 local enteredKey = ""
 KeyTab:Input({
     Title = "Enter Key",
-    Placeholder = "Type key here...",
+    Placeholder = "Type your key here...",
     Callback = function(value)
         enteredKey = value
     end,
 })
 
 local hubUnlocked = false
+local Tabs = {}
+
+local function setTabsVisible(state)
+    for _, tab in pairs(Tabs) do
+        pcall(function()
+            if tab.SetVisible then
+                tab:SetVisible(state)
+            end
+        end)
+    end
+end
 
 KeyTab:Button({
     Title = "Verify Key",
     Callback = function()
-        if enteredKey == "admintest" or enteredKey == "kisahub" then
+        -- Replace with your actual key validation system or API check
+        if enteredKey == "YOUR_ACTUAL_KEY_HERE" then
             hubUnlocked = true
+            setTabsVisible(true)
             WindUI:Notify({ Title = "Success", Content = "Key verified! Hub unlocked.", Duration = 3 })
+            Window:SelectTab(Tabs.Farm)
         else
-            WindUI:Notify({ Title = "Access Denied", Content = "Invalid key. Try 'admintest' or 'kisahub'.", Duration = 3 })
+            hubUnlocked = false
+            setTabsVisible(false)
+            WindUI:Notify({ Title = "Access Denied", Content = "Invalid key. Get a key from the link below.", Duration = 3 })
         end
     end,
 })
@@ -59,16 +75,16 @@ KeyTab:Button({
     end,
 })
 
--- Tabs
-local Tabs = {
-    Farm = Window:Tab({ Title = "Farm & Quest", Icon = "swords" }),
-    Combat = Window:Tab({ Title = "Combat & ESP", Icon = "shield" }),
-    Sea = Window:Tab({ Title = "Sea & Fruit", Icon = "compass" }),
-    Sea1 = Window:Tab({ Title = "1st Sea Fly", Icon = "map" }),
-    Sea2 = Window:Tab({ Title = "2nd Sea Fly", Icon = "map" }),
-    Sea3 = Window:Tab({ Title = "3rd Sea Fly", Icon = "map" }),
-    Misc = Window:Tab({ Title = "Misc & Server", Icon = "settings" }),
-}
+-- Initialize Content Tabs
+Tabs.Farm = Window:Tab({ Title = "Farm & Quest", Icon = "swords" })
+Tabs.Combat = Window:Tab({ Title = "Combat & ESP", Icon = "shield" })
+Tabs.Sea = Window:Tab({ Title = "Sea & Fruit", Icon = "compass" })
+Tabs.Sea1 = Window:Tab({ Title = "1st Sea Fly", Icon = "map" })
+Tabs.Sea2 = Window:Tab({ Title = "2nd Sea Fly", Icon = "map" })
+Tabs.Sea3 = Window:Tab({ Title = "3rd Sea Fly", Icon = "map" })
+Tabs.Misc = Window:Tab({ Title = "Misc & Server", Icon = "settings" })
+
+setTabsVisible(false)
 
 local Config = {
     AutoFarm = false,
@@ -90,6 +106,7 @@ Tabs.Farm:Toggle({
     Title = "Auto Farm Level",
     Default = false,
     Callback = function(Value)
+        if not hubUnlocked then return end
         Config.AutoFarm = Value
     end,
 })
@@ -98,6 +115,7 @@ Tabs.Farm:Toggle({
     Title = "Auto Accept / Get Quest",
     Default = false,
     Callback = function(Value)
+        if not hubUnlocked then return end
         Config.AutoQuest = Value
     end,
 })
@@ -106,6 +124,7 @@ Tabs.Farm:Toggle({
     Title = "Auto Collect Loot/Drops",
     Default = false,
     Callback = function(Value)
+        if not hubUnlocked then return end
         Config.AutoCollect = Value
     end,
 })
@@ -117,6 +136,7 @@ Tabs.Combat:Toggle({
     Title = "Auto Combat Nearest NPC",
     Default = false,
     Callback = function(Value)
+        if not hubUnlocked then return end
         Config.AutoCombat = Value
     end,
 })
@@ -144,6 +164,7 @@ Tabs.Sea:Toggle({
     Title = "Auto Sea Beast Hunt",
     Default = false,
     Callback = function(Value)
+        if not hubUnlocked then return end
         Config.AutoSeaBeast = Value
     end,
 })
@@ -156,16 +177,21 @@ Tabs.Sea:Toggle({
     end,
 })
 
--- Helper function for Flight toggles with anti-cheat bypass (Tweening instead of raw instant CFrame teleporting)
+-- Anti-Cheat Safe Flight System (Heartbeat Step Approach)
 local activeToggles = {}
-local TweenService = game:GetService("TweenService")
+local activeFlightConnection = nil
 
-local function addFlightToggle(tab, name, cframe, flagName)
+local function addFlightToggle(tab, name, targetCFrame, flagName)
     local toggleObj
     toggleObj = tab:Toggle({
-        Title = "Fly to " .. name,
+        Title = "Fly to " + name, -- Fixed string concatenation syntax
         Default = false,
         Callback = function(Value)
+            if not hubUnlocked then
+                if Value then toggleObj:Set(false) end
+                return
+            end
+
             if Value then
                 for fName, toggleData in pairs(activeToggles) do
                     if fName ~= flagName and toggleData.State() then
@@ -176,33 +202,56 @@ local function addFlightToggle(tab, name, cframe, flagName)
                 local character = player.Character
                 if character and character:FindFirstChild("HumanoidRootPart") then
                     local hrp = character.HumanoidRootPart
-                    local distance = (hrp.Position - cframe.Position).Magnitude
-                    local speed = 250 -- studs per second safely under anti-cheat thresholds
-                    local timeTaken = distance / speed
                     
-                    local tweenInfo = TweenInfo.new(timeTaken, Enum.EasingStyle.Linear)
-                    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = cframe})
-                    
-                    Config.ActiveFlightTarget = tween
-                    tween:Play()
-                    
-                    tween.Completed:Connect(function(status)
-                        if status == Enum.PlaybackState.Completed then
-                            Config.ActiveFlightTarget = nil
-                            toggleObj:Set(false)
-                        end
-                    end)
-                    
+                    if activeFlightConnection then
+                        activeFlightConnection:Disconnect()
+                        activeFlightConnection = nil
+                    end
+
                     WindUI:Notify({
                         Title = "Flight Started",
                         Content = "Flying safely to " .. name,
                         Duration = 2
                     })
+
+                    activeFlightConnection = RunService.Heartbeat:Connect(function(dt)
+                        if not character or not character:FindFirstChild("HumanoidRootPart") then
+                            if activeFlightConnection then activeFlightConnection:Disconnect() end
+                            return
+                        end
+
+                        -- Disable collisions during flight to avoid getting stuck in terrain chunks
+                        for _, part in ipairs(character:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanCollide = false
+                            end
+                        end
+
+                        local currentPos = hrp.Position
+                        local targetPos = targetCFrame.Position + Vector3.new(0, 15, 0) -- fly slightly above destination
+                        local direction = (targetPos - currentPos)
+                        local distance = direction.Magnitude
+
+                        if distance < 10 then
+                            hrp.CFrame = targetCFrame
+                            if activeFlightConnection then
+                                activeFlightConnection:Disconnect()
+                                activeFlightConnection = nil
+                            end
+                            toggleObj:Set(false)
+                            WindUI:Notify({ Title = "Arrived", Content = "Reached " .. name, Duration = 2 })
+                        else
+                            -- Safe incremental movement speed to prevent server kick/rubberband
+                            local step = math.min(300 * dt, distance)
+                            hrp.CFrame = CFrame.new(currentPos + direction.Unit * step)
+                            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        end
+                    end)
                 end
             else
-                if Config.ActiveFlightTarget then
-                    pcall(function() Config.ActiveFlightTarget:Cancel() end)
-                    Config.ActiveFlightTarget = nil
+                if activeFlightConnection then
+                    activeFlightConnection:Disconnect()
+                    activeFlightConnection = nil
                 end
             end
         end,
@@ -263,6 +312,7 @@ Tabs.Misc:Toggle({
     Title = "Speed Modification (Fast Walk)",
     Default = false,
     Callback = function(Value)
+        if not hubUnlocked then return end
         Config.CustomSpeed = Value
     end,
 })
@@ -295,6 +345,7 @@ Tabs.Misc:Button({
 Tabs.Misc:Button({
     Title = "Instant Server Hop",
     Callback = function()
+        if not hubUnlocked then return end
         local servers = {}
         local success, page = pcall(function()
             return HttpService:JSONDecode(
@@ -337,7 +388,7 @@ local enemyHighlights = {}
 local function updateESP()
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= player and plr.Character then
-            if Config.PlayerESP then
+            if Config.PlayerESP and hubUnlocked then
                 if not playerHighlights[plr] then
                     local hl = Instance.new("Highlight")
                     hl.Adornee = plr.Character
@@ -360,7 +411,7 @@ local function updateESP()
     if enemiesFolder then
         for _, enemy in ipairs(enemiesFolder:GetChildren()) do
             if enemy:FindFirstChild("HumanoidRootPart") and enemy:FindFirstChildOfClass("Humanoid") then
-                if Config.NpcESP then
+                if Config.NpcESP and hubUnlocked then
                     if not enemyHighlights[enemy] then
                         local hl = Instance.new("Highlight")
                         hl.Adornee = enemy
@@ -417,7 +468,6 @@ RunService.Heartbeat:Connect(function(dt)
             end
         end
 
-        -- Fixed Auto Sea Beast Hunt Logic (Searching both Workspace.SeaBeasts or generic ocean enemy names)
         if Config.AutoSeaBeast then
             local targetBeast = nil
             local sbFolder = Workspace:FindFirstChild("SeaBeasts") or Workspace:FindFirstChild("Enemies")
@@ -436,7 +486,6 @@ RunService.Heartbeat:Connect(function(dt)
 
             if targetBeast and targetBeast:FindFirstChild("HumanoidRootPart") then
                 local bHrp = targetBeast.HumanoidRootPart
-                -- Float right above the Sea Beast for ship/skill attacks safely
                 hrp.CFrame = bHrp.CFrame * CFrame.new(0, 30, 0)
                 pcall(function()
                     local tool = character:FindFirstChildOfClass("Tool")
