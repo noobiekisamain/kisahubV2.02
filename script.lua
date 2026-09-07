@@ -1,4 +1,4 @@
--- NOOBIEKISAHUB V2.5 BF // ULTIMATE EDITION (ADMINTEST KEY ADDED)
+-- NOOBIEKISAHUB V2.6 BF // STABLE EDITION
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -7,20 +7,14 @@ local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local VirtualUser = game:GetService("VirtualUser")
+local CoreGui = game:GetService("CoreGui")
 
 local player = Players.LocalPlayer
-local camera = Workspace.CurrentCamera
-
-player.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
-end)
 
 local function generateValidKey()
     local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     local randomPart = ""
-    math.randomseed(tick() + math.random(1000, 99999))
+    math.randomseed(os.time() + math.random(1000, 99999))
     for i = 1, 15 do
         local randIndex = math.random(1, #chars)
         randomPart = randomPart .. chars:sub(randIndex, randIndex)
@@ -29,12 +23,12 @@ local function generateValidKey()
 end
 
 local generatedKey = generateValidKey()
-print("[Noobiekisa Hub Key]: " + generatedKey)
+print("[Noobiekisa Hub Key]: " .. generatedKey)
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "NoobiekisaHubV2BF"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Parent = (CoreGui:FindFirstChild("RobloxGui") and CoreGui) or player:WaitForChild("PlayerGui")
 
 local keyFrame = Instance.new("Frame")
 keyFrame.Size = UDim2.new(0, 360, 0, 240)
@@ -584,7 +578,6 @@ end
 
 submitBtn.MouseButton1Click:Connect(function()
     local text = keyBox.Text
-    -- Allows either the admin master key "admintest" OR the dynamically generated valid key
     if text == "admintest" or text == generatedKey or (text:sub(1, 6) == "Noob-Q" and #text == 21) then
         launchHub()
     else
