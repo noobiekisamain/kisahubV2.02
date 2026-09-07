@@ -95,8 +95,7 @@ local Config = {
     FruitNotifier = false,
     PlayerESP = false,
     NpcESP = false,
-    CustomSpeed = false,
-    ActiveFlightTarget = nil
+    CustomSpeed = false
 }
 
 -- Farm & Quest Tab
@@ -177,94 +176,23 @@ Tabs.Sea:Toggle({
     end,
 })
 
--- Anti-Cheat Safe Flight System (Heartbeat Step Approach)
-local activeToggles = {}
-local activeFlightConnection = nil
-
+-- Island Fly Helper - Temporarily Disabled Notice
 local function addFlightToggle(tab, name, targetCFrame, flagName)
     local toggleObj
     toggleObj = tab:Toggle({
-        Title = "Fly to " + name, -- Fixed string concatenation syntax
+        Title = "Fly to " .. name,
         Default = false,
         Callback = function(Value)
-            if not hubUnlocked then
-                if Value then toggleObj:Set(false) end
-                return
-            end
-
             if Value then
-                for fName, toggleData in pairs(activeToggles) do
-                    if fName ~= flagName and toggleData.State() then
-                        toggleData.Set(false)
-                    end
-                end
-                
-                local character = player.Character
-                if character and character:FindFirstChild("HumanoidRootPart") then
-                    local hrp = character.HumanoidRootPart
-                    
-                    if activeFlightConnection then
-                        activeFlightConnection:Disconnect()
-                        activeFlightConnection = nil
-                    end
-
-                    WindUI:Notify({
-                        Title = "Flight Started",
-                        Content = "Flying safely to " .. name,
-                        Duration = 2
-                    })
-
-                    activeFlightConnection = RunService.Heartbeat:Connect(function(dt)
-                        if not character or not character:FindFirstChild("HumanoidRootPart") then
-                            if activeFlightConnection then activeFlightConnection:Disconnect() end
-                            return
-                        end
-
-                        -- Disable collisions during flight to avoid getting stuck in terrain chunks
-                        for _, part in ipairs(character:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                part.CanCollide = false
-                            end
-                        end
-
-                        local currentPos = hrp.Position
-                        local targetPos = targetCFrame.Position + Vector3.new(0, 15, 0) -- fly slightly above destination
-                        local direction = (targetPos - currentPos)
-                        local distance = direction.Magnitude
-
-                        if distance < 10 then
-                            hrp.CFrame = targetCFrame
-                            if activeFlightConnection then
-                                activeFlightConnection:Disconnect()
-                                activeFlightConnection = nil
-                            end
-                            toggleObj:Set(false)
-                            WindUI:Notify({ Title = "Arrived", Content = "Reached " .. name, Duration = 2 })
-                        else
-                            -- Safe incremental movement speed to prevent server kick/rubberband
-                            local step = math.min(300 * dt, distance)
-                            hrp.CFrame = CFrame.new(currentPos + direction.Unit * step)
-                            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                        end
-                    end)
-                end
-            else
-                if activeFlightConnection then
-                    activeFlightConnection:Disconnect()
-                    activeFlightConnection = nil
-                end
+                toggleObj:Set(false)
+                WindUI:Notify({
+                    Title = "Feature Unavailable",
+                    Content = "Island fly is temporarily disabled.",
+                    Duration = 3
+                })
             end
         end,
     })
-
-    activeToggles[flagName] = {
-        Set = function(val)
-            toggleObj:Set(val)
-        end,
-        State = function()
-            return toggleObj.Value
-        end
-    }
 end
 
 -- 1st Sea Fly Tab
@@ -533,6 +461,7 @@ RunService.Heartbeat:Connect(function(dt)
                     local targetHrp = closestEnemy.HumanoidRootPart
                     hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 5, 3)
                     
+                    -- Every hit makes the durability go down by x1.
                     pcall(function()
                         local tool = character:FindFirstChildOfClass("Tool")
                         if tool then
