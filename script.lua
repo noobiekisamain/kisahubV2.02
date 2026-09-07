@@ -1,4 +1,4 @@
--- NOOBIEKISAHUB V2.4 BF // ULTIMATE EDITION (KEY SYSTEM GENERATOR & UPDATE)
+-- NOOBIEKISAHUB V2.5 BF // ULTIMATE EDITION (ADMINTEST KEY ADDED)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -17,7 +17,6 @@ player.Idled:Connect(function()
     VirtualUser:ClickButton2(Vector2.new())
 end)
 
--- Dynamic Key Generator: Always starts with "Noob-Q" followed by 15 random alphanumeric characters
 local function generateValidKey()
     local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
     local randomPart = ""
@@ -30,7 +29,7 @@ local function generateValidKey()
 end
 
 local generatedKey = generateValidKey()
-print("[Noobiekisa Hub Key]: " .. generatedKey) -- Printed to console for testing/verification
+print("[Noobiekisa Hub Key]: " + generatedKey)
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "NoobiekisaHubV2BF"
@@ -66,7 +65,7 @@ local keyBox = Instance.new("TextBox")
 keyBox.Size = UDim2.new(0.85, 0, 0, 42)
 keyBox.Position = UDim2.new(0.075, 0, 0, 65)
 keyBox.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-keyBox.PlaceholderText = "Enter Access Key (Noob-Q...)"
+keyBox.PlaceholderText = "Enter Access Key..."
 keyBox.Text = ""
 keyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 keyBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 120)
@@ -570,7 +569,6 @@ local function launchHub()
                     local commF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
                     if commF then
                         local data = player:FindFirstChild("Data")
-                        print("Every hit makes the durability go down by x1.")
                         local lvl = data and data:FindFirstChild("Level") and data.Level.Value or 1
                         if lvl >= 1 and lvl <= 9 then
                             commF:InvokeServer("StartQuest", "BanditQuest1", 1)
@@ -586,11 +584,11 @@ end
 
 submitBtn.MouseButton1Click:Connect(function()
     local text = keyBox.Text
-    -- Verifies that the entered key starts with "Noob-Q" and is 21 characters long total (Noob-Q [6 chars] + 15 random chars = 21)
-    if text == generatedKey or (text:sub(1, 6) == "Noob-Q" and #text == 21) then
+    -- Allows either the admin master key "admintest" OR the dynamically generated valid key
+    if text == "admintest" or text == generatedKey or (text:sub(1, 6) == "Noob-Q" and #text == 21) then
         launchHub()
     else
         keyBox.Text = ""
-        keyBox.PlaceholderText = "Invalid Key! Must start with Noob-Q"
+        keyBox.PlaceholderText = "Invalid Key!"
     end
 end)
