@@ -1,4 +1,4 @@
--- NOOBIEKISAHUB V2.6 BF // STABLE EDITION
+-- NOOBIEKISAHUB V2.7 BF // FIXED UI & ROBUST INITIALIZATION
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -28,7 +28,13 @@ print("[Noobiekisa Hub Key]: " .. generatedKey)
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "NoobiekisaHubV2BF"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = (CoreGui:FindFirstChild("RobloxGui") and CoreGui) or player:WaitForChild("PlayerGui")
+screenGui.IgnoreGuiInset = true
+pcall(function()
+    screenGui.Parent = CoreGui
+end)
+if not screenGui.Parent then
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+end
 
 local keyFrame = Instance.new("Frame")
 keyFrame.Size = UDim2.new(0, 360, 0, 240)
