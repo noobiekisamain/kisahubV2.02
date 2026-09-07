@@ -41,8 +41,11 @@ local launchMainHub
 KeyTab:Button({
     Title = "Verify Key",
     Callback = function()
-        -- Checks for exact prefix followed by strictly 15 alphanumeric characters (letters/numbers only, total length 22)
-        if string.match(enteredKey, "^Noob%-Q[A-Za-z0-9]+$") and #enteredKey == 22 then
+        -- Trim any accidental spaces from user input
+        local cleanKey = string.match(enteredKey, "^%s*(.-)%s*$")
+        
+        -- Exact validation: starts with "Noob-Q" followed by precisely 15 alphanumeric characters (no symbols)
+        if cleanKey:match("^Noob%-Q[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]$") and #cleanKey == 21 then
             WindUI:Notify({ Title = "Success", Content = "Key correct! Loading hub...", Duration = 2 })
             
             pcall(function()
