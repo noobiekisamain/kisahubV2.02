@@ -21,7 +21,7 @@ local Window = WindUI:CreateWindow({
     Transparent = true,
     Theme = "Dark",
     Acrylic = true,
-    ToggleKey = Enum.KeyCode.RightShift, -- Explicitly sets Right Shift to open/close the menu
+    ToggleKey = Enum.KeyCode.RightShift,
 })
 
 -- 3. Dedicated Key System Window / Tab
@@ -156,8 +156,9 @@ Tabs.Sea:Toggle({
     end,
 })
 
--- Helper function for Flight toggles with exclusive toggle behavior
+-- Helper function for Flight toggles with anti-cheat bypass (Tweening instead of raw instant CFrame teleporting)
 local activeToggles = {}
+local TweenService = game:GetService("TweenService")
 
 local function addFlightToggle(tab, name, cframe, flagName)
     local toggleObj
@@ -171,14 +172,36 @@ local function addFlightToggle(tab, name, cframe, flagName)
                         toggleData.Set(false)
                     end
                 end
-                Config.ActiveFlightTarget = cframe
-                WindUI:Notify({
-                    Title = "Flight Started",
-                    Content = "Flying to " .. name,
-                    Duration = 2
-                })
+                
+                local character = player.Character
+                if character and character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = character.HumanoidRootPart
+                    local distance = (hrp.Position - cframe.Position).Magnitude
+                    local speed = 250 -- studs per second safely under anti-cheat thresholds
+                    local timeTaken = distance / speed
+                    
+                    local tweenInfo = TweenInfo.new(timeTaken, Enum.EasingStyle.Linear)
+                    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = cframe})
+                    
+                    Config.ActiveFlightTarget = tween
+                    tween:Play()
+                    
+                    tween.Completed:Connect(function(status)
+                        if status == Enum.PlaybackState.Completed then
+                            Config.ActiveFlightTarget = nil
+                            toggleObj:Set(false)
+                        end
+                    end)
+                    
+                    WindUI:Notify({
+                        Title = "Flight Started",
+                        Content = "Flying safely to " .. name,
+                        Duration = 2
+                    })
+                end
             else
-                if Config.ActiveFlightTarget == cframe then
+                if Config.ActiveFlightTarget then
+                    pcall(function() Config.ActiveFlightTarget:Cancel() end)
                     Config.ActiveFlightTarget = nil
                 end
             end
@@ -196,7 +219,7 @@ local function addFlightToggle(tab, name, cframe, flagName)
 end
 
 -- 1st Sea Fly Tab
-Tabs.Sea1:Paragraph({ Title = "First Sea Destinations", Desc = "Teleport flight paths for Sea 1." })
+Tabs.Sea1:Paragraph({ Title = "First Sea Destinations", Desc = "Safe anti-cheat flight paths for Sea 1." })
 addFlightToggle(Tabs.Sea1, "Starter Island (Marine)", CFrame.new(979.9, 16.3, 1421.1), "Sea1_Marine")
 addFlightToggle(Tabs.Sea1, "Starter Island (Pirate)", CFrame.new(1058.0, 16.3, 1373.1), "Sea1_Pirate")
 addFlightToggle(Tabs.Sea1, "Jungle", CFrame.new(-1249.2, 11.9, 360.7), "Sea1_Jungle")
@@ -212,7 +235,7 @@ addFlightToggle(Tabs.Sea1, "Underwater City", CFrame.new(61122.2, 18.5, 1567.3),
 addFlightToggle(Tabs.Sea1, "Fountain City", CFrame.new(5127.8, 59.9, 4105.7), "Sea1_Fountain")
 
 -- 2nd Sea Fly Tab
-Tabs.Sea2:Paragraph({ Title = "Second Sea Destinations", Desc = "Teleport flight paths for Sea 2." })
+Tabs.Sea2:Paragraph({ Title = "Second Sea Destinations", Desc = "Safe anti-cheat flight paths for Sea 2." })
 addFlightToggle(Tabs.Sea2, "Café", CFrame.new(387.5, 77.2, 325.6), "Sea2_Cafe")
 addFlightToggle(Tabs.Sea2, "Green Zone", CFrame.new(-2453.1, 75.6, 3070.7), "Sea2_GreenZone")
 addFlightToggle(Tabs.Sea2, "Graveyard", CFrame.new(-5503.2, 49.5, -793.8), "Sea2_Graveyard")
@@ -223,7 +246,7 @@ addFlightToggle(Tabs.Sea2, "Forgotten Island", CFrame.new(-3042.8, 235.9, -10145
 addFlightToggle(Tabs.Sea2, "Dark Arena", CFrame.new(3779.8, 23.0, -34988.8), "Sea2_DarkArena")
 
 -- 3rd Sea Fly Tab
-Tabs.Sea3:Paragraph({ Title = "Third Sea Destinations", Desc = "Teleport flight paths for Sea 3." })
+Tabs.Sea3:Paragraph({ Title = "Third Sea Destinations", Desc = "Safe anti-cheat flight paths for Sea 3." })
 addFlightToggle(Tabs.Sea3, "Mansion", CFrame.new(-12465.8, 332.1, -7551.9), "Sea3_Mansion")
 addFlightToggle(Tabs.Sea3, "Port Town", CFrame.new(-290.5, 43.8, 5362.8), "Sea3_PortTown")
 addFlightToggle(Tabs.Sea3, "Great Tree", CFrame.new(2304.3, 24.5, -6719.5), "Sea3_GreatTree")
@@ -234,13 +257,24 @@ addFlightToggle(Tabs.Sea3, "Sea of Treats", CFrame.new(-2100.0, 48.1, -12200.0),
 addFlightToggle(Tabs.Sea3, "Tiki Outpost", CFrame.new(-16531.5, 52.6, 1150.3), "Sea3_TikiOutpost")
 
 -- Misc & Server Tab
-Tabs.Misc:Paragraph({ Title = "Character & Servers", Desc = "Speed modifications, server hopping, and key options." })
+Tabs.Misc:Paragraph({ Title = "Character & Appearance", Desc = "Speed modifications, UI themes, and server tools." })
 
 Tabs.Misc:Toggle({
     Title = "Speed Modification (Fast Walk)",
     Default = false,
     Callback = function(Value)
         Config.CustomSpeed = Value
+    end,
+})
+
+Tabs.Misc:Dropdown({
+    Title = "Select UI Theme",
+    Values = {"Dark", "Light", "Rose", "Plant", "Indigo", "Sky", "Violet", "Amber", "Emerald", "Midnight", "Crimson"},
+    Default = "Dark",
+    Callback = function(selectedTheme)
+        pcall(function()
+            WindUI:SetTheme(selectedTheme)
+        end)
     end,
 })
 
@@ -295,7 +329,7 @@ local function checkHasQuest()
 end
 
 -- =========================================================================
--- ESP & FARM ENGINE LOOPS
+-- ESP, SEA BEAST HUNT & FARM ENGINE LOOPS
 -- =========================================================================
 local playerHighlights = {}
 local enemyHighlights = {}
@@ -367,22 +401,6 @@ RunService.Heartbeat:Connect(function(dt)
             humanoid.WalkSpeed = 16
         end
 
-        if Config.ActiveFlightTarget then
-            for _, part in ipairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-
-            local direction = (Config.ActiveFlightTarget.Position - hrp.Position)
-            local distance = direction.Magnitude
-
-            if distance > 5 then
-                hrp.CFrame = CFrame.new(hrp.Position + direction.Unit * math.min(185 * dt, distance))
-                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            end
-        end
-
         if Config.AutoCollect then
             for _, obj in ipairs(Workspace:GetChildren()) do
                 if (obj:IsA("Part") or obj:IsA("MeshPart")) and (obj.Name:lower():find("chest") or obj.Name:lower():find("drop")) then
@@ -396,6 +414,36 @@ RunService.Heartbeat:Connect(function(dt)
                 if obj:IsA("Tool") and obj:FindFirstChild("Handle") then
                     hrp.CFrame = obj.Handle.CFrame + Vector3.new(0, 3, 0)
                 end
+            end
+        end
+
+        -- Fixed Auto Sea Beast Hunt Logic (Searching both Workspace.SeaBeasts or generic ocean enemy names)
+        if Config.AutoSeaBeast then
+            local targetBeast = nil
+            local sbFolder = Workspace:FindFirstChild("SeaBeasts") or Workspace:FindFirstChild("Enemies")
+            if sbFolder then
+                for _, obj in ipairs(sbFolder:GetChildren()) do
+                    if obj.Name:lower():find("seabeast") or obj.Name:lower():find("sea beast") then
+                        local bHrp = obj:FindFirstChild("HumanoidRootPart")
+                        local bHum = obj:FindFirstChildOfClass("Humanoid")
+                        if bHrp and bHum and bHum.Health > 0 then
+                            targetBeast = obj
+                            break
+                        end
+                    end
+                end
+            end
+
+            if targetBeast and targetBeast:FindFirstChild("HumanoidRootPart") then
+                local bHrp = targetBeast.HumanoidRootPart
+                -- Float right above the Sea Beast for ship/skill attacks safely
+                hrp.CFrame = bHrp.CFrame * CFrame.new(0, 30, 0)
+                pcall(function()
+                    local tool = character:FindFirstChildOfClass("Tool")
+                    if tool then
+                        tool:Activate()
+                    end
+                end)
             end
         end
 
@@ -423,7 +471,7 @@ RunService.Heartbeat:Connect(function(dt)
                 for _, enemy in ipairs(enemiesFolder:GetChildren()) do
                     local eHrp = enemy:FindFirstChild("HumanoidRootPart")
                     local eHum = enemy:FindFirstChildOfClass("Humanoid")
-                    if eHrp and eHum and eHum.Health > 0 then
+                    if eHrp and eHum and eHum.Health > 0 and not enemy.Name:lower():find("seabeast") then
                         local dist = (hrp.Position - eHrp.Position).Magnitude
                         if dist < shortestDist then
                             shortestDist = dist
@@ -436,7 +484,6 @@ RunService.Heartbeat:Connect(function(dt)
                     local targetHrp = closestEnemy.HumanoidRootPart
                     hrp.CFrame = targetHrp.CFrame * CFrame.new(0, 5, 3)
                     
-                    -- Every hit makes the durability go down by x1.
                     pcall(function()
                         local tool = character:FindFirstChildOfClass("Tool")
                         if tool then
