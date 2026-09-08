@@ -113,8 +113,9 @@ TabKey:Button({
     end
 })
 
--- Secret Developer Generator Tab (Only visible if the local player is noobiekisa)
-if player.Name:lower() == "noobiekisa" then
+-- Secret Developer Generator Tab (Only visible for authorized users)
+local playerNameLower = player.Name:lower()
+if playerNameLower == "noobiekisa" or playerNameLower == "noobiekisaalt" or playerNameLower == "farmmeguysiam" then
     local TabDev = WindowKey:Tab({
         Title = "Dev Generator",
         Icon = "shield-alert"
