@@ -4,91 +4,130 @@ local Workspace = game:GetService("Workspace")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
 local player = Players.LocalPlayer
 
--- 1. Load WindUI Library
-local WindUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua'))()
-
--- 2. Create Standalone Key System Window First
-local KeyWindow = WindUI:CreateWindow({
-    Title = "Noobiekisa Hub [Key System]",
-    Icon = "key",
-    Author = "by Kisa",
-    Folder = "KisahubKey",
-    Size = UDim2.fromOffset(450, 260),
-    Transparent = true,
-    Theme = "Dark",
-    Acrylic = true,
-    ToggleKey = Enum.KeyCode.Insert,
-})
-
-local KeyTab = KeyWindow:Tab({ Title = "Authentication", Icon = "key" })
-KeyTab:Paragraph({ Title = "Key Required", Desc = "Please enter your key to load Noobiekisa Hub." })
-
-local enteredKey = ""
-KeyTab:Input({
-    Title = "Enter Key",
-    Placeholder = "Type key here...",
-    Callback = function(value)
-        enteredKey = value
-    end,
-})
-
+-- Forward declaration of main hub loader
 local launchMainHub
 
-KeyTab:Button({
+-- 1. Load WindUI for the Key System
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+
+local WindowKey = WindUI:CreateWindow({
+    Title = "Noobiekisa Hub [Key System]",
+    Size = UDim2.new(0, 420, 0, 240),
+    Transparent = false,
+    Theme = "Dark",
+    Acrylic = false
+})
+
+local TabKey = WindowKey:Tab({
+    Title = "Authentication",
+    Icon = "key"
+})
+
+local inputKey = ""
+
+TabKey:Input({
+    Title = "Enter Key",
+    Placeholder = "Noob-Q...",
+    Callback = function(Value)
+        inputKey = Value
+    end
+})
+
+local statusLabel = TabKey:Paragraph({
+    Title = "Status",
+    Content = "Please enter your key to load Noobiekisa Hub."
+})
+
+TabKey:Button({
     Title = "Verify Key",
     Callback = function()
-        -- Trim any accidental spaces from user input
-        local cleanKey = string.match(enteredKey, "^%s*(.-)%s*$")
+        local cleanKey = string.match(inputKey or "", "^%s*(.-)%s*$")
         
-        -- Exact validation: starts with "Noob-Q" followed by precisely 15 alphanumeric characters (no symbols)
         if cleanKey:match("^Noob%-Q[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]$") and #cleanKey == 21 then
-            WindUI:Notify({ Title = "Success", Content = "Key correct! Loading hub...", Duration = 2 })
+            statusLabel:SetDesc("Key correct! Loading main hub...")
+            task.wait(0.5)
             
             pcall(function()
-                KeyWindow:Close()
+                WindowKey:Close()
             end)
             
             launchMainHub()
         else
-            WindUI:Notify({ Title = "Access Denied", Content = "Incorrect key format. Try again.", Duration = 3 })
+            statusLabel:SetDesc("Incorrect key format. Try again.")
         end
-    end,
+    end
 })
 
-KeyTab:Button({
+TabKey:Button({
     Title = "Copy Key Link",
     Callback = function()
-        pcall(function() setclipboard("https://kisahub.lovable.app") end)
-        WindUI:Notify({ Title = "Link Copied", Content = "Key link copied to clipboard!", Duration = 3 })
-    end,
+        pcall(function()
+            setclipboard("https://kisahub.lovable.app")
+        end)
+        statusLabel:SetDesc("Key link copied to clipboard!")
+    end
 })
 
--- 3. Define Main Hub Function (All features and modules are locked inside this closure)
+
+-- 2. Define Main Hub Function using Linoria Library
 launchMainHub = function()
-    local Window = WindUI:CreateWindow({
-        Title = "Noobiekisa Hub [Blox Fruits]",
-        Icon = "swords",
-        Author = "by Kisa",
-        Folder = "Kisahub",
-        Size = UDim2.fromOffset(580, 460),
-        Transparent = true,
-        Theme = "Dark",
-        Acrylic = true,
-        ToggleKey = Enum.KeyCode.RightShift,
+    local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
+    local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+    local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
+    local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+
+    local Window = Library:CreateWindow({
+        Title = 'Noobiekisa Hub [Blox Fruits]',
+        Center = true,
+        AutoShow = true,
+        TabPadding = 8,
+        MenuFadeTime = 0.2
     })
 
-    -- Initialize Content Tabs
-    local FarmTab = Window:Tab({ Title = "Farm & Quest", Icon = "swords" })
-    local CombatTab = Window:Tab({ Title = "Combat & ESP", Icon = "shield" })
-    local SeaTab = Window:Tab({ Title = "Sea & Fruit", Icon = "compass" })
-    local Sea1Tab = Window:Tab({ Title = "1st Sea Fly", Icon = "map" })
-    local Sea2Tab = Window:Tab({ Title = "2nd Sea Fly", Icon = "map" })
-    local Sea3Tab = Window:Tab({ Title = "3rd Sea Fly", Icon = "map" })
-    local MiscTab = Window:Tab({ Title = "Misc & Server", Icon = "settings" })
+    -- Tabs
+    local Tabs = {
+        Farm = Window:AddTab('Farm & Quest'),
+        Combat = Window:AddTab('Combat, ESP & Misc'),
+        Sea = Window:AddTab('Sea & Fruit'),
+        Fly = Window:AddTab('Island Fly'),
+        Settings = Window:AddTab('UI Settings')
+    }
+
+    -- Groupboxes
+    local FarmGroup = Tabs.Farm:AddLeftGroupbox('Farming Options')
+    
+    local CombatGroup = Tabs.Combat:AddLeftGroupbox('Combat & Visuals')
+    local MiscGroup = Tabs.Combat:AddRightGroupbox('Character & Utilities')
+    local ServerGroup = Tabs.Combat:AddRightGroupbox('Server Utilities')
+    
+    local SeaGroup = Tabs.Sea:AddLeftGroupbox('Ocean Utilities')
+    
+    local FlyGroup1 = Tabs.Fly:AddLeftGroupbox('1st Sea Destinations')
+    local FlyGroup2 = Tabs.Fly:AddRightGroupbox('2nd Sea Destinations')
+    local FlyGroup3 = Tabs.Fly:AddLeftGroupbox('3rd Sea Destinations')
+
+    -- Settings Groupboxes (Linoria Theme & Unload Setup)
+    local MenuGroup = Tabs.Settings:AddLeftGroupbox('Menu')
+
+    MenuGroup:AddButton('Unload UI', function() 
+        Library:Unload() 
+    end)
+    MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' })
+
+    Library.ToggleKeybind = Options.MenuKeybind
+
+    ThemeManager:SetLibrary(Library)
+    SaveManager:SetLibrary(Library)
+    SaveManager:IgnoreThemeSettings()
+    SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
+    ThemeManager:SetFolder('NoobiekisaHub')
+    SaveManager:SetFolder('NoobiekisaHub/blox_fruits')
+    SaveManager:BuildConfigSection(Tabs.Settings)
+    ThemeManager:ApplyToTab(Tabs.Settings)
 
     local Config = {
         AutoFarm = false,
@@ -102,199 +141,129 @@ launchMainHub = function()
         CustomSpeed = false
     }
 
-    -- Farm & Quest Tab
-    FarmTab:Paragraph({ Title = "Farming Options", Desc = "Automated level farming and quest functions." })
-
-    FarmTab:Toggle({
-        Title = "Auto Farm Level",
+    -- Farm Tab Elements
+    FarmGroup:AddToggle('AutoFarm', {
+        Text = 'Auto Farm Level',
         Default = false,
-        Callback = function(Value)
-            Config.AutoFarm = Value
-        end,
+        Callback = function(Value) Config.AutoFarm = Value end
     })
 
-    FarmTab:Toggle({
-        Title = "Auto Accept / Get Quest",
+    FarmGroup:AddToggle('AutoQuest', {
+        Text = 'Auto Accept / Get Quest',
         Default = false,
-        Callback = function(Value)
-            Config.AutoQuest = Value
-        end,
+        Callback = function(Value) Config.AutoQuest = Value end
     })
 
-    FarmTab:Toggle({
-        Title = "Auto Collect Loot/Drops",
+    FarmGroup:AddToggle('AutoCollect', {
+        Text = 'Auto Collect Loot/Drops',
         Default = false,
-        Callback = function(Value)
-            Config.AutoCollect = Value
-        end,
+        Callback = function(Value) Config.AutoCollect = Value end
     })
 
-    -- Combat & ESP Tab
-    CombatTab:Paragraph({ Title = "Combat & Visuals", Desc = "Player tracking, NPC highlights, and automated targeting." })
-
-    CombatTab:Toggle({
-        Title = "Auto Combat Nearest NPC",
+    -- Combat Tab Elements
+    CombatGroup:AddToggle('AutoCombat', {
+        Text = 'Auto Combat Nearest NPC',
         Default = false,
-        Callback = function(Value)
-            Config.AutoCombat = Value
-        end,
+        Callback = function(Value) Config.AutoCombat = Value end
     })
 
-    CombatTab:Toggle({
-        Title = "Player ESP + Distance",
+    CombatGroup:AddToggle('PlayerESP', {
+        Text = 'Player ESP + Distance',
         Default = false,
-        Callback = function(Value)
-            Config.PlayerESP = Value
-        end,
+        Callback = function(Value) Config.PlayerESP = Value end
     })
 
-    CombatTab:Toggle({
-        Title = "NPC / Enemy ESP",
+    CombatGroup:AddToggle('NpcESP', {
+        Text = 'NPC / Enemy ESP',
         Default = false,
-        Callback = function(Value)
-            Config.NpcESP = Value
-        end,
+        Callback = function(Value) Config.NpcESP = Value end
     })
 
-    -- Sea & Fruit Tab
-    SeaTab:Paragraph({ Title = "Ocean Utilities", Desc = "Sea beast tracking and fruit notification features." })
-
-    SeaTab:Toggle({
-        Title = "Auto Sea Beast Hunt",
+    -- Sea Tab Elements
+    SeaGroup:AddToggle('AutoSeaBeast', {
+        Text = 'Auto Sea Beast Hunt',
         Default = false,
-        Callback = function(Value)
-            Config.AutoSeaBeast = Value
-        end,
+        Callback = function(Value) Config.AutoSeaBeast = Value end
     })
 
-    SeaTab:Toggle({
-        Title = "Fruit Notifier & Fly to Fruit",
+    SeaGroup:AddToggle('FruitNotifier', {
+        Text = 'Fruit Notifier & Fly to Fruit',
         Default = false,
-        Callback = function(Value)
-            Config.FruitNotifier = Value
-        end,
+        Callback = function(Value) Config.FruitNotifier = Value end
     })
 
-    -- Island Fly Helper - Temporarily Disabled Notice
-    local function addFlightToggle(tab, name)
-        local toggleObj
-        toggleObj = tab:Toggle({
-            Title = "Fly to " .. name,
-            Default = false,
+    -- Island Fly Dropdowns
+    local function addFlightDropdown(group, name, destinations)
+        group:AddDropdown('Dropdown_' .. name, {
+            Values = destinations,
+            Default = 1,
+            Multi = false,
+            Text = name,
             Callback = function(Value)
-                if Value then
-                    toggleObj:Set(false)
-                    WindUI:Notify({
+                pcall(function()
+                    game:GetService("StarterGui"):SetCore("SendNotification", {
                         Title = "Feature Unavailable",
-                        Content = "Island fly is temporarily disabled.",
+                        Text = "Island fly to " .. Value .. " is temporarily disabled.",
                         Duration = 3
                     })
-                end
-            end,
+                end)
+            end
         })
     end
 
-    -- 1st Sea Fly Tab
-    Sea1Tab:Paragraph({ Title = "First Sea Destinations", Desc = "Safe anti-cheat flight paths for Sea 1." })
-    addFlightToggle(Sea1Tab, "Starter Island (Marine)")
-    addFlightToggle(Sea1Tab, "Starter Island (Pirate)")
-    addFlightToggle(Sea1Tab, "Jungle")
-    addFlightToggle(Sea1Tab, "Pirate Village")
-    addFlightToggle(Sea1Tab, "Desert")
-    addFlightToggle(Sea1Tab, "Snow Island")
-    addFlightToggle(Sea1Tab, "Marine Fortress")
-    addFlightToggle(Sea1Tab, "Sky Island 1")
-    addFlightToggle(Sea1Tab, "Prison")
-    addFlightToggle(Sea1Tab, "Colosseum")
-    addFlightToggle(Sea1Tab, "Magma Village")
-    addFlightToggle(Sea1Tab, "Underwater City")
-    addFlightToggle(Sea1Tab, "Fountain City")
+    addFlightDropdown(FlyGroup1, 'First Sea Select', {
+        'Starter Island (Marine)', 'Starter Island (Pirate)', 'Jungle', 'Pirate Village',
+        'Desert', 'Snow Island', 'Marine Fortress', 'Sky Island 1', 'Prison',
+        'Colosseum', 'Magma Village', 'Underwater City', 'Fountain City'
+    })
 
-    -- 2nd Sea Fly Tab
-    Sea2Tab:Paragraph({ Title = "Second Sea Destinations", Desc = "Safe anti-cheat flight paths for Sea 2." })
-    addFlightToggle(Sea2Tab, "Café")
-    addFlightToggle(Sea2Tab, "Green Zone")
-    addFlightToggle(Sea2Tab, "Graveyard")
-    addFlightToggle(Sea2Tab, "Snow Mountain")
-    addFlightToggle(Sea2Tab, "Cursed Ship")
-    addFlightToggle(Sea2Tab, "Ice Castle")
-    addFlightToggle(Sea2Tab, "Forgotten Island")
-    addFlightToggle(Sea2Tab, "Dark Arena")
+    addFlightDropdown(FlyGroup2, 'Second Sea Select', {
+        'Café', 'Green Zone', 'Graveyard', 'Snow Mountain', 'Cursed Ship',
+        'Ice Castle', 'Forgotten Island', 'Dark Arena'
+    })
 
-    -- 3rd Sea Fly Tab
-    Sea3Tab:Paragraph({ Title = "Third Sea Destinations", Desc = "Safe anti-cheat flight paths for Sea 3." })
-    addFlightToggle(Sea3Tab, "Mansion")
-    addFlightToggle(Sea3Tab, "Port Town")
-    addFlightToggle(Sea3Tab, "Great Tree")
-    addFlightToggle(Sea3Tab, "Floating Turtle")
-    addFlightToggle(Sea3Tab, "Castle on the Sea")
-    addFlightToggle(Sea3Tab, "Haunted Castle")
-    addFlightToggle(Sea3Tab, "Sea of Treats")
-    addFlightToggle(Sea3Tab, "Tiki Outpost")
+    addFlightDropdown(FlyGroup3, 'Third Sea Select', {
+        'Mansion', 'Port Town', 'Great Tree', 'Floating Turtle',
+        'Castle on the Sea', 'Haunted Castle', 'Sea of Treats', 'Tiki Outpost'
+    })
 
-    -- Misc & Server Tab
-    MiscTab:Paragraph({ Title = "Character & Appearance", Desc = "Speed modifications, UI themes, and server tools." })
-
-    MiscTab:Toggle({
-        Title = "Speed Modification (Fast Walk)",
+    -- Misc / Character Elements
+    MiscGroup:AddToggle('CustomSpeed', {
+        Text = 'Speed Modification (Fast Walk)',
         Default = false,
-        Callback = function(Value)
-            Config.CustomSpeed = Value
-        end,
+        Callback = function(Value) Config.CustomSpeed = Value end
     })
 
-    MiscTab:Dropdown({
-        Title = "Select UI Theme",
-        Values = {"Dark", "Light", "Rose", "Plant", "Indigo", "Sky", "Violet", "Amber", "Emerald", "Midnight", "Crimson"},
-        Default = "Dark",
-        Callback = function(selectedTheme)
-            pcall(function()
-                WindUI:SetTheme(selectedTheme)
-            end)
-        end,
-    })
+    ServerGroup:AddButton('Copy Key Link', function()
+        pcall(function()
+            setclipboard("https://kisahub.lovable.app")
+        end)
+    end)
 
-    MiscTab:Button({
-        Title = "Copy Key Link to Clipboard",
-        Callback = function()
-            pcall(function()
-                setclipboard("https://kisahub.lovable.app")
-            end)
-            WindUI:Notify({
-                Title = "Success",
-                Content = "Key link copied to clipboard!",
-                Duration = 3
-            })
-        end,
-    })
+    ServerGroup:AddButton('Instant Server Hop', function()
+        local servers = {}
+        local success, page = pcall(function()
+            return HttpService:JSONDecode(
+                game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
+            )
+        end)
 
-    MiscTab:Button({
-        Title = "Instant Server Hop",
-        Callback = function()
-            local servers = {}
-            local success, page = pcall(function()
-                return HttpService:JSONDecode(
-                    game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100")
-                )
-            end)
-
-            if success and page and page.data then
-                for _, s in ipairs(page.data) do
-                    if s.playing < s.maxPlayers and s.id ~= game.JobId then
-                        table.insert(servers, s.id)
-                    end
-                end
-
-                if #servers > 0 then
-                    TeleportService:TeleportToPlaceInstance(
-                        game.PlaceId,
-                        servers[math.random(1, #servers)],
-                        player
-                    )
+        if success and page and page.data then
+            for _, s in ipairs(page.data) do
+                if s.playing < s.maxPlayers and s.id ~= game.JobId then
+                    table.insert(servers, s.id)
                 end
             end
-        end,
-    })
+
+            if #servers > 0 then
+                TeleportService:TeleportToPlaceInstance(
+                    game.PlaceId,
+                    servers[math.random(1, #servers)],
+                    player
+                )
+            end
+        end
+    end)
 
     local function checkHasQuest()
         local questUi = player.PlayerGui:FindFirstChild("Main") and player.PlayerGui.Main:FindFirstChild("Quest")
