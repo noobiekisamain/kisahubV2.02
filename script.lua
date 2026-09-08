@@ -16,7 +16,7 @@ local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footag
 
 local WindowKey = WindUI:CreateWindow({
     Title = "Noobiekisa Hub [Key System]",
-    Size = UDim2.new(0, 420, 0, 240),
+    Size = UDim2.new(0, 420, 0, 260),
     Transparent = false,
     Theme = "Dark",
     Acrylic = false
@@ -112,6 +112,38 @@ TabKey:Button({
         statusLabel:SetDesc("Key link copied to clipboard!")
     end
 })
+
+-- Secret Developer Generator Tab (Only visible if the local player is noobiekisa)
+if player.Name:lower() == "noobiekisa" then
+    local TabDev = WindowKey:Tab({
+        Title = "Dev Generator",
+        Icon = "shield-alert"
+    })
+
+    local generatedKeyDisplay = TabDev:Paragraph({
+        Title = "Generated Key",
+        Content = "Click below to generate a valid 12-hour bypass key."
+    })
+
+    TabDev:Button({
+        Title = "Generate Valid Key",
+        Callback = function()
+            local chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+            local randomPart = ""
+            for i = 1, 15 do
+                local randIdx = math.random(1, #chars)
+                randomPart = randomPart .. chars:sub(randIdx, randIdx)
+            end
+            local newValidKey = "Noob-Q" .. randomPart
+            
+            pcall(function()
+                setclipboard(newValidKey)
+            end)
+            
+            generatedKeyDisplay:SetDesc("Key: " .. newValidKey .. " (Copied to clipboard!)")
+        end
+    })
+end
 
 
 -- 2. Define Main Hub Function using Linoria Library
