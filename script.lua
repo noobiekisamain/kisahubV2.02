@@ -39,8 +39,48 @@ TabKey:Input({
 
 local statusLabel = TabKey:Paragraph({
     Title = "Status",
-    Content = "Please enter your key to load Noobiekisa Hub."
+    Content = "Please enter your key to load Noobiekisa Hub. (Keys last 12 hours)"
 })
+
+-- 12-Hour Key System Storage Handler
+local KEY_DURATION = 12 * 60 * 60 -- 12 hours in seconds
+local SAVE_FILE = "NoobiekisaHub_KeyData.json"
+
+local function getSavedKeyData()
+    local success, data = pcall(function()
+        if readfile and isfile and isfile(SAVE_FILE) then
+            return HttpService:JSONDecode(readfile(SAVE_FILE))
+        end
+    end)
+    if success and type(data) == "table" then
+        return data
+    end
+    return nil
+end
+
+local function saveKeyData(key)
+    pcall(function()
+        if writefile then
+            local data = {
+                Key = key,
+                Expiry = os.time() + KEY_DURATION
+            }
+            writefile(SAVE_FILE, HttpService:JSONEncode(data))
+        end
+    end)
+end
+
+-- Check existing saved valid key on startup
+local savedData = getSavedKeyData()
+if savedData and savedData.Expiry and os.time() < savedData.Expiry then
+    task.spawn(function()
+        task.wait(0.5)
+        pcall(function()
+            WindowKey:Close()
+        end)
+        launchMainHub()
+    end)
+end
 
 TabKey:Button({
     Title = "Verify Key",
@@ -48,7 +88,8 @@ TabKey:Button({
         local cleanKey = string.match(inputKey or "", "^%s*(.-)%s*$")
         
         if cleanKey:match("^Noob%-Q[A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9][A-Za-z0-9]$") and #cleanKey == 21 then
-            statusLabel:SetDesc("Key correct! Loading main hub...")
+            saveKeyData(cleanKey)
+            statusLabel:SetDesc("Key verified successfully! (Valid for 12 hours). Loading main hub...")
             task.wait(0.5)
             
             pcall(function()
